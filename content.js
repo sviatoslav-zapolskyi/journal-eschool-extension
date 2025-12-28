@@ -3,7 +3,7 @@ script.src = chrome.runtime.getURL('inject.js');
 script.onload = () => script.remove();
 (document.head || document.documentElement).appendChild(script);
 
-chrome.runtime.onMessage.addListener((message, sender) => {
+chrome.runtime.onMessage.addListener((message) => {
   if (message.type !== 'FETCH_PROFILE') return;
 
   const apiKey = localStorage.getItem('__api_key_value__');
@@ -21,10 +21,32 @@ chrome.runtime.onMessage.addListener((message, sender) => {
     headers: {
       'api-key': apiKey
     },
-    credentials: 'include' // cookies з браузера
+    credentials: 'include'
   })
-    .then(res => res.json())
-    .then(data => {
+    .then(async (response) => {
+      // 🔴 403 → редирект
+      if (response.status === 403) {
+        console.warn('[profile] 403 → redirect to auth');
+
+        window.location.href = 'https://sep.eschool-ua.com/auth';
+
+        chrome.runtime.sendMessage({
+          type: 'PROFILE_ERROR',
+          error: 'Unauthorized'
+        });
+
+        return null;
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      return response.json();
+    })
+    .then((data) => {
+      if (!data) return;
+
       chrome.runtime.sendMessage({
         type: 'PROFILE_DATA',
         firstName: data.FirstName,
@@ -32,7 +54,7 @@ chrome.runtime.onMessage.addListener((message, sender) => {
         lastName: data.LastName
       });
     })
-    .catch(err => {
+    .catch((err) => {
       console.error('[profile]', err);
       chrome.runtime.sendMessage({
         type: 'PROFILE_ERROR',
