@@ -1,0 +1,30 @@
+body {
+  margin: 0;
+  padding: 0;
+  width: 160px;
+  height: 120px;
+  background: transparent;
+  font-family: sans-serif;
+}
+
+.menu {
+  margin: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.menu button {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 6px;
+  border: none;
+  border-radius: 4px;
+  background: #f0f0f0;
+  cursor: pointer;
+}
+
+.menu button:hover {
+  background: #e0e0e0;
+}

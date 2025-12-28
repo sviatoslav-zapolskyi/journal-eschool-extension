@@ -1,0 +1,30 @@
+{
+    "manifest_version": 3,
+    "name": "Journal e-school",
+    "version": "0.0.0",
+    "description": "Експорт та імпорт оцінок",
+    "permissions": ["scripting", "webRequest"],
+    "host_permissions": ["https://journal.eschool-ua.com/*", "https://api.eschool-ua.com/v1/*"],
+    "content_scripts": [
+        {
+            "matches": ["https://journal.eschool-ua.com/*", "https://api.eschool-ua.com/v1/*"],
+            "js": ["content.js"],
+            "run_at": "document_idle"
+        }
+    ],
+    "icons": {
+        "1362": "image.png"
+    },
+    "action": {
+    "default_popup": "popup.html"
+  } ,
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["inject.js"],
+      "matches": ["https://journal.eschool-ua.com/*"]
+    }
+  ]
+}
