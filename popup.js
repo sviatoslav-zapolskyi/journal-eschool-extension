@@ -1,18 +1,38 @@
 const menu = document.getElementById('menu');
 const importBtn = document.getElementById('importBtn');
 const exportBtn = document.getElementById('exportBtn');
+const lastNameEl = document.getElementById('lastName');
 
-importBtn.addEventListener('click', () => {
-  alert('Import clicked');
-});
+function fetchProfile() {
+  chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+    if (!tab?.id) return;
 
-exportBtn.addEventListener('click', () => {
-  alert('Export clicked');
-});
+    chrome.tabs.sendMessage(tab.id, {
+      type: 'FETCH_PROFILE'
+    });
+  });
+}
 
-// Закриття popup при кліку поза меню
-document.addEventListener('click', (event) => {
-  if (!menu.contains(event.target)) {
-    window.close(); // закриває popup
+// отримуємо відповідь від content script
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.type === 'PROFILE_DATA') {
+    lastNameEl.textContent = `${message.lastName} ${message.firstName[0]}.  ${message.secondName[0]}.` || '—';
+  }
+
+  if (message.type === 'PROFILE_ERROR') {
+    lastNameEl.textContent = 'Error';
   }
 });
+
+importBtn.addEventListener('click', fetchProfile);
+exportBtn.addEventListener('click', fetchProfile);
+
+// закриття popup
+document.addEventListener('click', (event) => {
+  if (!menu.contains(event.target)) {
+    window.close();
+  }
+});
+
+// одразу при відкритті popup
+fetchProfile();
