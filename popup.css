@@ -1,8 +1,8 @@
 body {
   margin: 0;
   padding: 0;
-  width: 160px;
-  height: 120px;
+  width: 520px;
+  height: 520px;
   background: transparent;
   font-family: sans-serif;
 }
@@ -13,24 +13,67 @@ body {
   border-radius: 8px;
   background: white;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: visible;
+  min-width: 320px;
 }
 
 .menu button {
-  width: 100%;
+  display: block;
+  width: 140px;
+  max-width: calc(100% - 24px);
   padding: 8px;
-  margin-bottom: 6px;
+  margin: 6px 0;
   border: none;
   border-radius: 4px;
   background: #f0f0f0;
   cursor: pointer;
+  text-align: left;
 }
 
 .menu button:hover {
   background: #e0e0e0;
 }
 
+/* Active main button while its submenu is open */
+.menu button.active {
+  background: #d0d0d0;
+}
+
 .last-name {
   font-weight: bold;
   margin-bottom: 8px;
   text-align: center;
+}
+
+/* Submenu styles */
+.submenu {
+  position: fixed;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+  padding: 6px;
+  display: none;
+  z-index: 10000;
+  box-sizing: border-box;
+  max-width: 320px;
+  width: auto;
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+}
+.submenu.visible {
+  display: block;
+}
+.submenu button {
+  width: 100%;
+  padding: 6px 8px;
+  margin: 4px 0;
+  border: none;
+  border-radius: 4px;
+  background: #f8f8f8;
+  cursor: pointer;
+  text-align: left;
+}
+.submenu button:hover {
+  background: #eef;
 }

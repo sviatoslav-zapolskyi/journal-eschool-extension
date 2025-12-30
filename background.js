@@ -23,3 +23,15 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
   },
   ['requestHeaders']
 );
+
+chrome.runtime.onMessage.addListener((message, sender) => {
+  if (message?.type === 'POPUP_DIMENSIONS') {
+    console.log('[popup dims]', message.payload, 'from', sender?.id || sender?.tab?.id || 'popup');
+  }
+  if (message?.type === 'SUBMENU_SELECT') {
+    try {
+      console.log('[SUBMENU_SELECT]', message.mode, '->', message.label, message.item || '');
+    } catch (e) {}
+  }
+  return false;
+});
