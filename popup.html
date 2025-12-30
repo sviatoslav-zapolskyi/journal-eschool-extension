@@ -7,9 +7,29 @@
 <body>
   <div id="menu" class="menu">
     <div id="lastName" class="last-name">Loading...</div>
-
     <button id="importBtn">Import</button>
     <button id="exportBtn">Export</button>
+
+    <div class="token-row">
+      <label for="sheetsToken">Sheets token:</label>
+      <input id="sheetsToken" type="text" placeholder="Paste your OAuth token here" />
+      <div class="token-actions">
+        <button id="saveTokenBtn">Save</button>
+        <button id="clearTokenBtn" title="Remove saved token">Clear</button>
+        <div class="help-wrap">
+          <span id="tokenHelpBtn" class="help-btn" aria-label="Як отримати токен" tabindex="0">i</span>
+          <div id="tokenHelp" class="token-help" role="tooltip">
+            <strong>Як отримати Access token</strong><br>
+            1) У Google Cloud Console створіть проєкт і увімкніть Google Sheets API.<br>
+            2) Створіть OAuth 2.0 Client ID (Web application) і додайте Redirect URI:<br>
+            <code>https://&lt;EXTENSION_ID&gt;.chromiumapp.org/</code><br>
+            3) Відкрийте <a href="https://developers.google.com/oauthplayground" target="_blank">OAuth 2.0 Playground</a>, оберіть scope <code>https://www.googleapis.com/auth/spreadsheets</code>, авторизуйте й отримайте Access token — скопіюйте сюди.<br>
+            Порада: Access token закінчується з часом; для багатьох користувачів краще використовувати серверний сервіс (service account).
+          </div>
+        </div>
+      </div>
+      <div id="tokenStatus" class="token-status">No token</div>
+    </div>
   </div>
 
   </div>

@@ -3,7 +3,7 @@
     "name": "Journal e-school",
     "version": "0.0.0",
     "description": "Експорт та імпорт оцінок",
-    "permissions": ["scripting", "webRequest"],
+    "permissions": ["scripting", "webRequest", "identity", "storage"],
     "host_permissions": ["https://journal.eschool-ua.com/*", "https://api.eschool-ua.com/v1/*"],
     "content_scripts": [
         {
@@ -20,6 +20,12 @@
   } ,
   "background": {
     "service_worker": "background.js"
+  },
+  "oauth2": {
+    "client_id": "REPLACE_WITH_YOUR_CLIENT_ID.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/spreadsheets"
+    ]
   },
   "web_accessible_resources": [
     {

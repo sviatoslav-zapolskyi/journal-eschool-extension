@@ -3,6 +3,12 @@ const importBtn = document.getElementById('importBtn');
 const exportBtn = document.getElementById('exportBtn');
 const lastNameEl = document.getElementById('lastName');
 const submenu = document.getElementById('submenu');
+const sheetsTokenInput = document.getElementById('sheetsToken');
+const saveTokenBtn = document.getElementById('saveTokenBtn');
+const clearTokenBtn = document.getElementById('clearTokenBtn');
+const tokenStatus = document.getElementById('tokenStatus');
+const tokenHelpBtn = document.getElementById('tokenHelpBtn');
+const tokenHelp = document.getElementById('tokenHelp');
 
 let partsItems = [];
 let hideTimeout = null;
@@ -42,6 +48,71 @@ document.addEventListener('DOMContentLoaded', () => {
     // ignore
   }
 });
+
+// load saved token from storage and update UI
+function loadStoredToken() {
+  try {
+    chrome.storage.local.get(['user_sheets_token'], (res) => {
+      const t = res?.user_sheets_token;
+      if (t) {
+        if (sheetsTokenInput) sheetsTokenInput.value = t;
+        if (tokenStatus) tokenStatus.textContent = 'Token saved';
+      } else {
+        if (tokenStatus) tokenStatus.textContent = 'No token';
+      }
+    });
+  } catch (e) { /* ignore */ }
+}
+
+function saveToken() {
+  const t = sheetsTokenInput?.value?.trim() || '';
+  if (!t) {
+    chrome.storage.local.remove('user_sheets_token', () => {
+      tokenStatus.textContent = 'No token';
+    });
+    return;
+  }
+  chrome.storage.local.set({ user_sheets_token: t }, () => {
+    tokenStatus.textContent = 'Token saved';
+  });
+}
+
+function clearToken() {
+  chrome.storage.local.remove('user_sheets_token', () => {
+    if (sheetsTokenInput) sheetsTokenInput.value = '';
+    tokenStatus.textContent = 'No token';
+  });
+}
+
+if (saveTokenBtn) saveTokenBtn.addEventListener('click', saveToken);
+if (clearTokenBtn) clearTokenBtn.addEventListener('click', clearToken);
+loadStoredToken();
+
+// Tooltip behavior: show on hover/focus, but do NOT auto-hide on mouseleave.
+function showTokenHelp() {
+  try { tokenHelp.classList.add('visible'); tokenHelp.setAttribute('aria-hidden', 'false'); } catch (e) {}
+}
+function hideTokenHelp() {
+  try { tokenHelp.classList.remove('visible'); tokenHelp.setAttribute('aria-hidden', 'true'); } catch (e) {}
+}
+
+if (tokenHelpBtn) {
+  tokenHelpBtn.addEventListener('mouseenter', showTokenHelp);
+  tokenHelpBtn.addEventListener('focus', showTokenHelp);
+  tokenHelpBtn.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') hideTokenHelp(); });
+}
+
+// Hide tooltip only when clicking outside the help area (or pressing Escape anywhere)
+document.addEventListener('click', (ev) => {
+  try {
+    const t = ev.target;
+    if (!tokenHelp || !tokenHelpBtn) return;
+    if (!tokenHelp.contains(t) && !tokenHelpBtn.contains(t)) {
+      hideTokenHelp();
+    }
+  } catch (e) {}
+});
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') hideTokenHelp(); });
 
 // also send dimensions each time submenu is shown
 const sendDims = () => {
@@ -86,6 +157,17 @@ chrome.runtime.onMessage.addListener((message) => {
   if (message.type === 'PROFILE_ERROR') {
     lastNameEl.textContent = 'Error';
   }
+  if (message.type === 'SHEET_CREATED') {
+    try {
+      const via = message.via || 'unknown';
+      const url = message.url || '';
+      if (tokenStatus) tokenStatus.textContent = `Sheet created (${via})`;
+      // open the sheet in a new tab if url provided
+      if (url) {
+        try { chrome.tabs.create({ url }); } catch (e) { /* ignore */ }
+      }
+    } catch (e) {}
+  }
 });
 
 importBtn.addEventListener('click', fetchProfile);
@@ -100,11 +182,16 @@ function renderSubmenu(items, mode) {
     const text = `${subject}: ${className} (${title})`;
     const btn = document.createElement('button');
     btn.textContent = text;
+    // set DOM id and data attribute for the submenu item
+    if (it?.Id !== undefined) {
+      btn.id = `part-${it.Id}`;
+      btn.dataset.partId = String(it.Id);
+    }
     btn.addEventListener('click', () => {
       const submenuLabel = `${subject}: ${className} (${title})`;
       // log locally (visible in popup DevTools) and notify background
-      try { console.log(`${mode} -> ${submenuLabel}`); } catch (e) {}
-      chrome.runtime.sendMessage({ type: 'SUBMENU_SELECT', mode, label: submenuLabel, item: it });
+      try { console.log(`${mode} -> ${submenuLabel} (id=${it?.Id ?? 'unknown'})`); } catch (e) {}
+      chrome.runtime.sendMessage({ type: 'SUBMENU_SELECT', mode, label: submenuLabel, id: it?.Id, item: it });
       hideSubmenu();
     });
     submenu.appendChild(btn);
