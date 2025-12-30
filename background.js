@@ -33,12 +33,12 @@ chrome.runtime.onMessage.addListener((message, sender) => {
       console.log('[SUBMENU_SELECT]', message.mode, '->', message.label, 'id=', message.id, message.item || '');
     } catch (e) {}
 
-    // Try to create a Google Sheet named by the part id (message.id)
+    if (message.mode === 'export') {
+// Try to create a Google Sheet named by the part id (message.id)
     const partId = message.id != null ? String(message.id) : null;
     const submenuLabel = message.label || partId || 'export';
     const makeSpreadsheetTitle = (label) => {
-      const iso = new Date().toISOString().replace(/:/g, '-');
-      return `Export - ${label} - ${iso}`;
+      return `${label} - ${new Date().toLocaleString()}`;
     };
     if (!partId) {
       console.warn('No part id provided, skipping sheet creation');
@@ -166,6 +166,9 @@ chrome.runtime.onMessage.addListener((message, sender) => {
           }
         });
       }
+    }
+
+    
   }
   return false;
 });
