@@ -3,11 +3,17 @@ script.src = chrome.runtime.getURL('inject.js');
 script.onload = () => script.remove();
 (document.head || document.documentElement).appendChild(script);
 
-chrome.runtime.onMessage.addListener((message) => {
-  if (message.type !== 'FETCH_PROFILE') return;
+const handlers = Object.create(null);
+
+let isFetchingProfile = false;
+
+// =====================
+// FETCH_PROFILE
+// =====================
+handlers.FETCH_PROFILE = () => {
+  if (isFetchingProfile) return;
 
   const apiKey = localStorage.getItem('__api_key_value__');
-
   if (!apiKey) {
     chrome.runtime.sendMessage({
       type: 'PROFILE_ERROR',
@@ -16,49 +22,49 @@ chrome.runtime.onMessage.addListener((message) => {
     return;
   }
 
+  isFetchingProfile = true;
+
   fetch('https://api.eschool-ua.com/profile', {
-    method: 'GET',
-    headers: {
-      'api-key': apiKey
-    },
+    headers: { 'api-key': apiKey },
     credentials: 'include'
   })
-    .then(async (response) => {
-      // 🔴 403 → редирект
-      if (response.status === 403) {
-        console.warn('[profile] 403 → redirect to auth');
-
+    .then(res => {
+      if (res.status === 403) {
         window.location.href = 'https://sep.eschool-ua.com/auth';
-
-        chrome.runtime.sendMessage({
-          type: 'PROFILE_ERROR',
-          error: 'Unauthorized'
-        });
-
-        return null;
+        throw new Error('Unauthorized');
       }
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      return response.json();
+      return res.json();
     })
-    .then((data) => {
-      if (!data) return;
-
+    .then(profile => {
       chrome.runtime.sendMessage({
         type: 'PROFILE_DATA',
-        firstName: data.FirstName,
-        secondName: data.SecondName,
-        lastName: data.LastName
+        firstName: profile.FirstName,
+        secondName: profile.SecondName,
+        lastName: profile.LastName
       });
     })
-    .catch((err) => {
-      console.error('[profile]', err);
+    .catch(err => {
       chrome.runtime.sendMessage({
         type: 'PROFILE_ERROR',
         error: err.toString()
       });
+    })
+    .finally(() => {
+      isFetchingProfile = false;
     });
+};
+
+// =====================
+// MESSAGE DISPATCHER
+// =====================
+chrome.runtime.onMessage.addListener((message) => {
+  const handler = handlers[message.type];
+
+  if (!handler) {
+    console.warn('[content] unknown message type:', message.type);
+    return false;
+  }
+
+  handler(message);
+  return false;
 });
