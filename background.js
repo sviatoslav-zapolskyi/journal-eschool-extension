@@ -19,10 +19,10 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
 
 let pendingSchoolboysRequests = {}; // No longer needed, but keeping for now if other uses
 
-async function appendSurnames(spreadsheetId, sheetTitle, token, surnames) {
-    if (surnames.length === 0) return;
+async function appendStudentData(spreadsheetId, sheetTitle, token, students) {
+    if (students.length === 0) return;
 
-    const values = [['Прізвища'], ...surnames.map((s) => [s])];
+    const values = [['Прізвище', "Ім'я"], ...students.map((s) => [s.LastName || '', s.FirstName || ''])];
 
     const appendBody = {
         values,
@@ -41,13 +41,13 @@ async function appendSurnames(spreadsheetId, sheetTitle, token, surnames) {
         });
 
         if (res.ok) {
-            console.log('Surnames appended to sheet');
+            console.log('Student data appended to sheet');
         } else {
             const text = await res.text();
-            console.error('Failed to append surnames:', res.status, text);
+            console.error('Failed to append student data:', res.status, text);
         }
     } catch (err) {
-        console.error('Error appending surnames:', err);
+        console.error('Error appending student data:', err);
     }
 }
 
@@ -55,7 +55,7 @@ function makeSpreadsheetTitle(label) {
     return `${label} - ${new Date().toLocaleString()}`;
 }
 
-async function createAndPopulateSheet(partId, label, surnames, token, via) {
+async function createAndPopulateSheet(partId, label, students, token, via) {
     const title = makeSpreadsheetTitle(label);
     const body = {
         properties: { title },
@@ -109,14 +109,14 @@ async function createAndPopulateSheet(partId, label, surnames, token, via) {
             console.warn(`Failed to send SHEET_CREATED (${via})`, e);
         }
 
-        // append surnames if any
-        await appendSurnames(created.spreadsheetId, partId, token, surnames);
+        // append student data if any
+        await appendStudentData(created.spreadsheetId, partId, token, students);
     } catch (err) {
         console.error(`Error creating sheet (${via}):`, err);
     }
 }
 
-function handleExport(partId, label, surnames, item) {
+function handleExport(partId, label, students, item) {
     if (!partId) {
         console.warn('No part id provided, skipping sheet creation');
         return;
@@ -129,22 +129,22 @@ function handleExport(partId, label, surnames, item) {
             // try using stored token
             (async () => {
                 try {
-                    await createAndPopulateSheet(partId, label, surnames, stored, 'stored_token');
+                    await createAndPopulateSheet(partId, label, students, stored, 'stored_token');
                     return;
                 } catch (err) {
                     console.error('Stored token failed, trying identity');
                 }
 
                 // If stored token failed, try identity flow next
-                tryIdentityFlow(partId, label, surnames);
+                tryIdentityFlow(partId, label, students);
             })();
         } else {
             // no stored token — use identity flow
-            tryIdentityFlow(partId, label, surnames);
+            tryIdentityFlow(partId, label, students);
         }
     });
 
-    function tryIdentityFlow(partIdLocal, labelLocal, surnamesLocal) {
+    function tryIdentityFlow(partIdLocal, labelLocal, studentsLocal) {
         // Acquire OAuth token
         if (!chrome.identity || !chrome.identity.getAuthToken) {
             console.error('chrome.identity.getAuthToken is not available. Ensure `identity` permission and `oauth2` are set in manifest.json.');
@@ -157,7 +157,7 @@ function handleExport(partId, label, surnames, item) {
             }
 
             try {
-                await createAndPopulateSheet(partIdLocal, labelLocal, surnamesLocal, token, 'identity');
+                await createAndPopulateSheet(partIdLocal, labelLocal, studentsLocal, token, 'identity');
             } catch (err) {
                 console.error('Error in identity flow', err);
             }
@@ -222,9 +222,12 @@ chrome.runtime.onMessage.addListener((message, sender) => {
                                     })
                                     .then((schoolboys) => {
                                         console.log('[background] Schoolboys fetched:', schoolboys);
-                                        const surnames = schoolboys?.Items ? schoolboys.Items.map((s) => s.LastName || '').filter((s) => s) : [];
-                                        console.log('[background] Extracted surnames:', surnames);
-                                        handleExport(partId, submenuLabel, surnames, item);
+                                        const students = schoolboys?.Items || [];
+                                        console.log(
+                                            '[background] Students data:',
+                                            students.map((s) => ({ lastName: s.LastName, firstName: s.FirstName }))
+                                        );
+                                        handleExport(partId, submenuLabel, students, item);
                                     })
                                     .catch((err) => {
                                         console.error('Fetch schoolboys error in background:', err);
